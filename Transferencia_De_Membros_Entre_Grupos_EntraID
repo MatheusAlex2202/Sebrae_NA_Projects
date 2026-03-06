@@ -1,0 +1,54 @@
+$sourceGroupId = "ID_GRUPO_ORIGEM"
+ 
+$targetGroups = @(
+"ID_GRUPO_1",
+"ID_GRUPO_2",
+"ID_GRUPO_3"
+)
+ 
+# pega membros do grupo origem
+$members = Get-MgGroupMember -GroupId $sourceGroupId -All |
+Where-Object {$_.AdditionalProperties['@odata.type'] -eq '#microsoft.graph.user'}
+ 
+foreach ($targetGroupId in $targetGroups){
+ 
+    $counter = 1
+ 
+    $groupInfo = Get-MgGroup -GroupId $targetGroupId
+    $groupName = $groupInfo.DisplayName
+ 
+    Write-Host ""
+    Write-Host "Processando grupo: $groupName"
+    Write-Host "------------------------------------------------------------"
+ 
+    $existingMembers = Get-MgGroupMember -GroupId $targetGroupId -All |
+    Where-Object {$_.AdditionalProperties['@odata.type'] -eq '#microsoft.graph.user'}
+ 
+    $existingIds = $existingMembers.Id
+ 
+    foreach ($member in $members){
+ 
+        $user = Get-MgUser -UserId $member.Id
+        $userName = $user.DisplayName
+ 
+        if ($existingIds -notcontains $member.Id){
+ 
+            New-MgGroupMember -GroupId $targetGroupId -DirectoryObjectId $member.Id
+            $status = "Foi adicionado ao grupo"
+ 
+        }
+        else{
+ 
+            $status = "Já está no grupo"
+ 
+        }
+ 
+        # formatação alinhada
+        $line = "{0,3}. {1,-35} | {2}" -f $counter, $userName, $status
+        Write-Host $line
+ 
+        $counter++
+ 
+    }
+ 
+}
